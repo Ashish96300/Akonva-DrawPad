@@ -1,4 +1,4 @@
-import { registerDevice } from "../services/deviceRegistration.service.js";
+import { registerDevice ,getAllDevices ,getStats  ,getDeviceByConnection} from "../services/deviceRegistration.service.js";
 import { MESSAGE_TYPES ,DEVICE_TYPES } from "../configs/constants.js";
 
 const handleRegistration = (ws, message) => {
@@ -35,4 +35,55 @@ const handleRegistration = (ws, message) => {
   }));
 };
 
-export {handleRegistration}
+//HTTP: Get all devices
+const getDevices = (req, res) => {
+  try {
+    const devices = getAllDevices();
+    
+    // Don't send WebSocket objects in response
+    const sanitizedDevices = devices.map(d => ({
+      deviceId: d.deviceId,
+      deviceType: d.deviceType,
+      connectedAt: d.connectedAt,
+      status: d.status
+    }));
+    
+    res.json({
+      success: true,
+      data: sanitizedDevices
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+//HTTP: Get device statistics
+const getDeviceStats = (req, res) => {
+  try {
+    const stats = getStats();
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+ //WebSocket: Handle disconnection
+const handleDisconnection = (ws) => {
+  const device = getDeviceByConnection(ws);
+  
+  if (device) {
+    console.log(`Device disconnecting: ${device.deviceId}`);
+    deviceService.removeDevice(device.deviceId);
+  }
+};
+
+export {handleRegistration ,getDevices ,getDeviceStats ,handleDisconnection }
