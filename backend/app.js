@@ -1,6 +1,6 @@
 
 import express from 'express';
-// import deviceRoutes from './routes/deviceRoutes.js';
+import deviceRoutes from './src/routes/device.routes.js';
 
 const app = express();
 
@@ -14,7 +14,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// app.use('/api/devices', deviceRoutes);
+app.use('/api/devices', deviceRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
