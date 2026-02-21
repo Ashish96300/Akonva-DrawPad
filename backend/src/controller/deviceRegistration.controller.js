@@ -1,4 +1,5 @@
-import { registerDevice ,getAllDevices ,getStats  ,getDeviceByConnection} from "../services/deviceRegistration.service.js";
+import { registerDevice ,getAllDevices ,getStats  ,getDeviceByConnection ,linkToSession ,removeDevice} from "../services/deviceRegistration.service.js";
+import { createSession } from "../services/session.service.js";
 import { MESSAGE_TYPES ,DEVICE_TYPES } from "../configs/constants.js";
 
 const handleRegistration = (ws, message) => {
@@ -28,13 +29,33 @@ const handleRegistration = (ws, message) => {
 
   const device = registerDevice(deviceId, deviceType, ws);
 
-  ws.send(JSON.stringify({
-    type: MESSAGE_TYPES.REGISTRATION_SUCCESS,
-    message: `${deviceType} registered successfully`,
-    deviceId: device.deviceId
-  }));
+    if (deviceType === DEVICE_TYPES.DESKTOP) {
+    const session = createSession(deviceId);
+    
+    linkToSession(deviceId, session.sessionId);
+    
+    // Send success with pairing code
+    ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.REGISTRATION_SUCCESS,
+      message: 'Desktop registered successfully',
+      deviceId: device.deviceId,
+      sessionId: session.sessionId,
+      pairingCode: session.pairingCode,
+      expiresAt: session.codeExpiresAt
+    }));
+    
+    console.log(`Desktop ${deviceId} got pairing code: ${session.pairingCode}`);
+  }
+  
+  // If MOBILE, just register (will pair later)
+  else {
+    ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.REGISTRATION_SUCCESS,
+      message: 'Mobile registered. Enter pairing code to connect.',
+      deviceId: device.deviceId
+    }));
+  }
 };
-
 //HTTP: Get all devices
 const getDevices = (req, res) => {
   try {
@@ -82,8 +103,10 @@ const handleDisconnection = (ws) => {
   
   if (device) {
     console.log(`Device disconnecting: ${device.deviceId}`);
-    deviceService.removeDevice(device.deviceId);
+    removeDevice(device.deviceId);
   }
 };
+
+//todo session cleaup on disconnect
 
 export {handleRegistration ,getDevices ,getDeviceStats ,handleDisconnection }

@@ -6,6 +6,7 @@ const registerDevice = (deviceId ,deviceType ,ws)=>{
         deviceId,
         deviceType,
         ws,
+        sessionId: null,
         connectedAt:Date.now(),
         status:'CONNECTED'
     }
@@ -57,4 +58,17 @@ const getStats = () => {
   };
 };
 
-export {registerDevice ,getDeviceById ,getDeviceByConnection ,removeDevice ,getAllDevices ,getStats}
+const linkToSession = (deviceId, sessionId) => {
+  const device = devices.get(deviceId);
+  
+  if (device) {
+    device.sessionId = sessionId;
+    console.log(`Device ${deviceId} linked to session ${sessionId}`);
+    return true;
+  }
+  
+  console.log(`Failed to link: Device ${deviceId} not found`);
+  return false;
+};
+
+export {registerDevice ,getDeviceById ,getDeviceByConnection ,removeDevice ,getAllDevices ,getStats ,linkToSession}

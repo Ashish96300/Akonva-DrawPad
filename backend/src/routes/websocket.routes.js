@@ -1,5 +1,5 @@
 
-import { handleRegistration } from '../controller/deviceRegistration.controller.js';
+import { handleRegistration ,handleDisconnection} from '../controller/deviceRegistration.controller.js';
 import { MESSAGE_TYPES } from '../configs/constants.js';
 
 //Routes messages to appropriate controllers based on type
@@ -54,7 +54,7 @@ export const handleWebSocketConnection = (ws) => {
 
   // Handle disconnection
   ws.on('close', () => {
-    deviceController.handleDisconnection(ws);
+    handleDisconnection(ws);
   });
 
   // Handle errors
