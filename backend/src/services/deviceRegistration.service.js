@@ -33,7 +33,7 @@ const removeDevice = (deviceId) => {
   const device = devices.get(deviceId);
   
   if (device) {
-    connections.delete(device.ws);
+    connections.delete(device.ws); 
     devices.delete(deviceId);
     console.log(`Device removed: ${deviceId}`);
   }

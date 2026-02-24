@@ -1,9 +1,8 @@
 
 import http from 'http';
-import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import app from './app.js';
-import { handleWebSocketConnection } from './src/routes/websocket.routes.js';
+import initializeSocket from './src/utils/socket.js'
 
 dotenv.config({
   path: './.env'
@@ -13,9 +12,7 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 
-const wss = new WebSocketServer({ server });
-
-wss.on('connection', handleWebSocketConnection);
+initializeSocket(server)
 
 server.listen(PORT, () => {
   console.log(`🚀 Server listening on PORT ${PORT}`);

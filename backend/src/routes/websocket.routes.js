@@ -6,6 +6,7 @@ import { MESSAGE_TYPES } from '../configs/constants.js';
 
 export const handleWebSocketMessage = (ws, message) => {
   switch (message.type) {
+    // Doubt Here
     case MESSAGE_TYPES.REGISTER_DESKTOP:
     case MESSAGE_TYPES.REGISTER_MOBILE:
       handleRegistration(ws, message);

@@ -82,7 +82,7 @@ const handleDisconnection = (ws) => {
   
   if (device) {
     console.log(`Device disconnecting: ${device.deviceId}`);
-    deviceService.removeDevice(device.deviceId);
+    deviceService.removeDevice(device.deviceId); /* <-- Doubt Here Bug: deviceService not imported */
   }
 };
 
