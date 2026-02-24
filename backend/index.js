@@ -17,7 +17,7 @@ initializeSocket(server)
 server.listen(PORT, () => {
   console.log(`🚀 Server listening on PORT ${PORT}`);
   console.log(`📡 HTTP: http://localhost:${PORT}`);
-  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+  // console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
 });
 
 process.on('SIGTERM', () => {

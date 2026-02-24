@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
-import generatePairingCode from "./pairingLogic"
+import generatePairingCode from "./pairingLogic.js"
+import { addDevice, removeDevice } from '../services/deviceRegistration.service.js'
 
 const waitingDesktops = new Map()
 
@@ -22,6 +23,8 @@ const initializeSocket = (server) => {
             
              // Send it to this Device only
             socket.emit('otp', { otp })
+
+            addDevice(socket.id, 'DESKTOP')            
         })
 
         socket.on('registerMobile', ({otp}) => {
@@ -36,6 +39,8 @@ const initializeSocket = (server) => {
             // Join Room 
             socket.join(otp)
             desktopSocket.join(otp)
+
+            addDevice(socket.id, 'MOBILE')
 
             // Pairing Successful
             socket.emit('pairingSuccess', {message: 'Paired Successful'})
@@ -55,6 +60,8 @@ const initializeSocket = (server) => {
         socket.on('disconnect', () => {
             waitingDesktops.forEach((desktopSocket, otp) => {
                 if(desktopSocket === socket) waitingDesktops.delete(otp)
+
+                removeDevice(socket.id)
             })
         })
     })
