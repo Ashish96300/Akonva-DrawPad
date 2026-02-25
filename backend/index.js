@@ -1,8 +1,9 @@
 
 import http from 'http';
+import { WebSocketServer } from 'ws';
 import dotenv from 'dotenv';
 import app from './app.js';
-import initializeSocket from './src/utils/socket.js'
+import { handleWebSocketConnection } from './src/routes/websocket.routes.js';
 
 dotenv.config({
   path: './.env'
@@ -12,12 +13,14 @@ const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 
-initializeSocket(server)
+const wss = new WebSocketServer({ server });
+
+wss.on('connection', handleWebSocketConnection);
 
 server.listen(PORT, () => {
   console.log(`🚀 Server listening on PORT ${PORT}`);
   console.log(`📡 HTTP: http://localhost:${PORT}`);
-  // console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
 });
 
 process.on('SIGTERM', () => {

@@ -1,38 +1,39 @@
-import { getAllDevices ,getStats} from "../services/deviceRegistration.service.js";
+import { registerDevice ,getAllDevices ,getStats  ,getDeviceByConnection} from "../services/deviceRegistration.service.js";
+import { MESSAGE_TYPES ,DEVICE_TYPES } from "../configs/constants.js";
 
-// const handleRegistration = (ws, message) => {
-//   const { type, deviceId } = message;
+const handleRegistration = (ws, message) => {
+  const { type, deviceId } = message;
 
-//   if (!deviceId || typeof deviceId !== 'string') {
-//     ws.send(JSON.stringify({
-//       type: MESSAGE_TYPES.ERROR,
-//       message: 'Invalid deviceId'
-//     }));
-//     return;
-//   }
+  if (!deviceId || typeof deviceId !== 'string') {
+    ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.ERROR,
+      message: 'Invalid deviceId'
+    }));
+    return;
+  }
 
-//   let deviceType;
+  let deviceType;
   
-//   if (type === MESSAGE_TYPES.REGISTER_DESKTOP) {
-//     deviceType = DEVICE_TYPES.DESKTOP;
-//   } else if (type === MESSAGE_TYPES.REGISTER_MOBILE) {
-//     deviceType = DEVICE_TYPES.MOBILE;
-//   } else {
-//     ws.send(JSON.stringify({
-//       type: MESSAGE_TYPES.ERROR,
-//       message: 'Invalid registration type'
-//     }));
-//     return;
-//   }
+  if (type === MESSAGE_TYPES.REGISTER_DESKTOP) {
+    deviceType = DEVICE_TYPES.DESKTOP;
+  } else if (type === MESSAGE_TYPES.REGISTER_MOBILE) {
+    deviceType = DEVICE_TYPES.MOBILE;
+  } else {
+    ws.send(JSON.stringify({
+      type: MESSAGE_TYPES.ERROR,
+      message: 'Invalid registration type'
+    }));
+    return;
+  }
 
-//   const device = registerDevice(deviceId, deviceType, ws);
+  const device = registerDevice(deviceId, deviceType, ws);
 
-//   ws.send(JSON.stringify({
-//     type: MESSAGE_TYPES.REGISTRATION_SUCCESS,
-//     message: `${deviceType} registered successfully`,
-//     deviceId: device.deviceId
-//   }));
-// };
+  ws.send(JSON.stringify({
+    type: MESSAGE_TYPES.REGISTRATION_SUCCESS,
+    message: `${deviceType} registered successfully`,
+    deviceId: device.deviceId
+  }));
+};
 
 //HTTP: Get all devices
 const getDevices = (req, res) => {
@@ -76,13 +77,13 @@ const getDeviceStats = (req, res) => {
 };
 
  //WebSocket: Handle disconnection
-// const handleDisconnection = (ws) => {
-//   const device = getDeviceByConnection(ws);
+const handleDisconnection = (ws) => {
+  const device = getDeviceByConnection(ws);
   
-//   if (device) {
-//     console.log(`Device disconnecting: ${device.deviceId}`);
-//     deviceService.removeDevice(device.deviceId); /* <-- Doubt Here Bug: deviceService not imported */
-//   }
-// };
+  if (device) {
+    console.log(`Device disconnecting: ${device.deviceId}`);
+    deviceService.removeDevice(device.deviceId);
+  }
+};
 
-export {getDevices ,getDeviceStats }
+export {handleRegistration ,getDevices ,getDeviceStats ,handleDisconnection }
