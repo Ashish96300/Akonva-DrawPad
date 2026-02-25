@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DrawPad - Mobile Test Client</title>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: 0 auto; }
+    button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; width: 100%; }
+    input {
+      padding: 10px;
+      font-size: 32px;
+      width: 100%;
+      text-align: center;
+      letter-spacing: 10px;
+      border: 2px solid #2c3e50;
+      border-radius: 5px;
+      margin: 10px 0;
+      box-sizing: border-box;
+    }
+    #canvas {
+      border: 2px solid #2c3e50;
+      display: none;
+      margin-top: 20px;
+      touch-action: none;
+      background: white;
+      width: 100%;
+    }
+    #log { 
+      margin-top: 20px; 
+      padding: 10px; 
+      background: #f0f0f0; 
+      border: 1px solid #ccc;
+      font-family: monospace;
+      max-height: 200px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    #status {
+      padding: 10px;
+      border-radius: 5px;
+      margin: 10px 0;
+      font-weight: bold;
+      text-align: center;
+    }
+    .connected { background: #d4edda; color: #155724; }
+    .disconnected { background: #f8d7da; color: #721c24; }
+    .paired { background: #cce5ff; color: #004085; }
+    #pairingSection { display: none; }
+    #drawingSection { display: none; }
+    #colorPicker { width: 50px; height: 40px; padding: 0; border: none; cursor: pointer; }
+    #brushSize { width: 100%; margin: 10px 0; }
+    .controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <h1>📱 DrawPad - Mobile</h1>
+
+  <div id="status" class="disconnected">Not Connected</div>
+
+  <!-- Step 1: Connect -->
+  <div id="connectSection">
+    <button onclick="connectMobile()">Connect as Mobile</button>
+  </div>
+
+  <!-- Step 2: Enter OTP -->
+  <div id="pairingSection">
+    <h2>Enter OTP from Desktop:</h2>
+    <input type="number" id="otpInput" placeholder="4829" maxlength="4" />
+    <button onclick="submitOTP()">Pair with Desktop</button>
+  </div>
+
+  <!-- Step 3: Draw -->
+  <div id="drawingSection">
+    <h2>Draw here 👇</h2>
+    <div class="controls">
+      <label>Color: <input type="color" id="colorPicker" value="#000000" /></label>
+      <label>Size: <input type="range" id="brushSize" min="1" max="20" value="3" /></label>
+      <button onclick="clearCanvas()" style="width:auto; padding: 5px 15px;">Clear</button>
+    </div>
+    <canvas id="canvas" width="400" height="600"></canvas>
+  </div>
+
+  <div id="log"></div>
+
+  <script>
+    let socket = null;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function log(message, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const timestamp = new Date().toLocaleTimeString();
+      const className = type === 'error' ? 'error' : (type === 'success' ? 'success' : '');
+      logDiv.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    function setStatus(message, type) {
+      const status = document.getElementById('status');
+      status.textContent = message;
+      status.className = type;
+    }
+
+    function connectMobile() {
+      if (socket) {
+        log('Already connected!', 'error');
+        return;
+      }
+
+      socket = io('http://localhost:3000');
+
+      socket.on('connect', () => {
+        log('✓ Connected to server!', 'success');
+        setStatus('Connected — enter OTP to pair', 'connected');
+
+        // Register as mobile
+        socket.emit('registerMobile', {});
+        log('Registered as Mobile');
+
+        // Show OTP input
+        document.getElementById('connectSection').style.display = 'none';
+        document.getElementById('pairingSection').style.display = 'block';
+      });
+
+      socket.on('pairingSuccess', ({ message }) => {
+        log(`✓ ${message}`, 'success');
+        setStatus('✅ Paired! Start drawing!', 'paired');
+        document.getElementById('pairingSection').style.display = 'none';
+        document.getElementById('drawingSection').style.display = 'block';
+        canvas.style.display = 'block';
+        setupDrawing();
+      });
+
+      socket.on('error', ({ message }) => {
+        log(`✗ Error: ${message}`, 'error');
+        setStatus(`Error: ${message}`, 'disconnected');
+      });
+
+      socket.on('disconnect', () => {
+        log('✗ Disconnected from server', 'error');
+        setStatus('Disconnected', 'disconnected');
+        socket = null;
+        document.getElementById('connectSection').style.display = 'block';
+        document.getElementById('pairingSection').style.display = 'none';
+        document.getElementById('drawingSection').style.display = 'none';
+      });
+    }
+
+    function submitOTP() {
+      const otp = parseInt(document.getElementById('otpInput').value);
+
+      if (!otp || otp.toString().length !== 4) {
+        log('Please enter a valid 4 digit OTP', 'error');
+        return;
+      }
+
+      log(`Submitting OTP: ${otp}`);
+      socket.emit('registerMobile', { otp });
+    }
+
+    function getCanvasPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+
+      if (e.touches) {
+        return {
+          x: (e.touches[0].clientX - rect.left) * scaleX,
+          y: (e.touches[0].clientY - rect.top) * scaleY
+        };
+      }
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function getDrawOptions() {
+      return {
+        color: document.getElementById('colorPicker').value,
+        size: parseInt(document.getElementById('brushSize').value)
+      };
+    }
+
+    function setupDrawing() {
+      // Mouse events
+      canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        const pos = getCanvasPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+        const data = { type: 'start', x: pos.x, y: pos.y, ...getDrawOptions() };
+        drawLocally(data);
+        socket.emit('draw', data);
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        const pos = getCanvasPos(e);
+        const data = { type: 'move', x: pos.x, y: pos.y, lastX, lastY, ...getDrawOptions() };
+        drawLocally(data);
+        socket.emit('draw', data);
+        lastX = pos.x;
+        lastY = pos.y;
+      });
+
+      canvas.addEventListener('mouseup', () => {
+        isDrawing = false;
+        const data = { type: 'end' };
+        socket.emit('draw', data);
+      });
+
+      // Touch events for actual mobile
+      canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        isDrawing = true;
+        const pos = getCanvasPos(e);
+        lastX = pos.x;
+        lastY = pos.y;
+        const data = { type: 'start', x: pos.x, y: pos.y, ...getDrawOptions() };
+        drawLocally(data);
+        socket.emit('draw', data);
+      });
+
+      canvas.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if (!isDrawing) return;
+        const pos = getCanvasPos(e);
+        const data = { type: 'move', x: pos.x, y: pos.y, lastX, lastY, ...getDrawOptions() };
+        drawLocally(data);
+        socket.emit('draw', data);
+        lastX = pos.x;
+        lastY = pos.y;
+      });
+
+      canvas.addEventListener('touchend', () => {
+        isDrawing = false;
+        socket.emit('draw', { type: 'end' });
+      });
+    }
+
+    function drawLocally(data) {
+      ctx.strokeStyle = data.color || '#000000';
+      ctx.lineWidth = data.size || 3;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      if (data.type === 'start') {
+        ctx.beginPath();
+        ctx.moveTo(data.x, data.y);
+      } else if (data.type === 'move') {
+        ctx.lineTo(data.x, data.y);
+        ctx.stroke();
+      } else if (data.type === 'end') {
+        ctx.closePath();
+      }
+    }
+
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      if (socket) socket.emit('draw', { type: 'clear' });
+    }
+  </script>
+</body>
+</html>
