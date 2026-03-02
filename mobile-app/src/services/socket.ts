@@ -1,7 +1,7 @@
 
 import io from 'socket.io-client';
 
-const SERVER_URL = 'http://LAPTOP_IP_ADDRESS:PORT';  // Your laptop IP
+const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL!;
 
 const socket = io(SERVER_URL, {
   autoConnect: true,  

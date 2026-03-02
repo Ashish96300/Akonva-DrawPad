@@ -1,64 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, Dimensions, Text, GestureResponderEvent } from 'react-native';
-import { Canvas, Path, Skia, SkPath } from "@shopify/react-native-skia";
-import socket from '../services/socket';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+import React from 'react';
+import { View, Text } from 'react-native';
+import { Canvas, Path } from "@shopify/react-native-skia";
+import useDrawing from '../hooks/useDrawing';
 
 const DrawingScreen = () => {
-  const [laptopDims, setLaptopDims] = useState({ width: 0, height: 0 });
-  const [isReady, setIsReady] = useState(false);
- 
-  const [paths, setPaths] = useState<SkPath[]>([]);
-  const [currentPath, setCurrentPath] = useState<SkPath | null>(null);
-
-  useEffect(() => {
-   
-    socket.emit('drawingScreenReady');
-
-    socket.on('canvasDimensions', (data: any) => {
-      if (data.width && data.height) {
-        setLaptopDims({ width: data.width, height: data.height });
-        setIsReady(true);
-      }
-    });
-
-    return () => {
-      socket.off('canvasDimensions');
-    };
-  }, []);
-
-  const handleTouch = (eventType: 'start' | 'move' | 'end', e: GestureResponderEvent) => {
-    if (!isReady) return;
-
-    const { locationX, locationY } = e.nativeEvent;
-
-    // 1. Update Skia Visuals
-    if (eventType === 'start') {
-      const newPath = Skia.Path.Make();
-      newPath.moveTo(locationX, locationY);
-      setCurrentPath(newPath);
-    } else if (eventType === 'move' && currentPath) {
-      currentPath.lineTo(locationX, locationY);
-      // We force a re-render by creating a shallow copy or using a state trick
-      setCurrentPath(currentPath.copy());
-    } else if (eventType === 'end' && currentPath) {
-      setPaths((prev) => [...prev, currentPath]);
-      setCurrentPath(null);
-    }
-
-    // 2. Send Scaled Data to Laptop
-    const scaleX = laptopDims.width / SCREEN_WIDTH;
-    const scaleY = laptopDims.height / SCREEN_HEIGHT;
-
-    socket.emit('draw', {
-      type: eventType,
-      x: locationX * scaleX,
-      y: locationY * scaleY,
-      color: '#00ffa3', // Neon green for better visibility
-      size: 4,
-    });
-  };
+  const { isReady, paths, renderPath, handleTouch } = useDrawing();
 
   if (!isReady) {
     return (
@@ -69,7 +15,7 @@ const DrawingScreen = () => {
   }
 
   return (
-    <View 
+    <View
       className="flex-1 bg-slate-950"
       onStartShouldSetResponder={() => true}
       onMoveShouldSetResponder={() => true}
@@ -77,7 +23,6 @@ const DrawingScreen = () => {
       onResponderMove={(e) => handleTouch('move', e)}
       onResponderRelease={(e) => handleTouch('end', e)}
     >
-      {/* Skia Canvas for High-Performance Drawing */}
       <Canvas style={{ flex: 1 }}>
         {paths.map((path, index) => (
           <Path
@@ -90,9 +35,10 @@ const DrawingScreen = () => {
             strokeJoin="round"
           />
         ))}
-        {currentPath && (
+
+        {renderPath && (
           <Path
-            path={currentPath}
+            path={renderPath}       
             color="#00ffa3"
             style="stroke"
             strokeWidth={4}
@@ -102,7 +48,6 @@ const DrawingScreen = () => {
         )}
       </Canvas>
 
-      {/* Info Overlay */}
       <View className="absolute bottom-10 left-0 right-0 items-center pointer-events-none">
         <Text className="text-slate-700 text-[10px] tracking-widest uppercase">
           Skia Hardware Accelerated

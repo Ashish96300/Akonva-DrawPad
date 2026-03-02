@@ -1,25 +1,10 @@
 
-import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
-import socket from '../services/socket'; 
+import React from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import usePairing from '../hooks/usePairing';
 
 const PairingScreen = () => {
-  const [otp, setOtp] = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const handlePairing = () => {
-    if (otp.length < 4) { 
-      Alert.alert('Invalid Code', 'Please enter the code shown on your laptop.');
-      return;
-    }
-
-    setLoading(true);
-    console.log("📤 Attempting to pair with OTP:", otp);
-
-    // Send the pairing request
-    socket.emit('registerMobile', { otp: otp.trim() });
-
-  };
+  const { otp, setOtp, loading, handlePairing } = usePairing();
 
   return (
     <View className="flex-1 justify-center items-center bg-white px-6">
@@ -41,7 +26,7 @@ const PairingScreen = () => {
           editable={!loading}
         />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={handlePairing}
           disabled={loading}
           className={`w-full py-4 rounded-xl items-center ${loading ? 'bg-slate-400' : 'bg-blue-600'}`}
@@ -62,4 +47,3 @@ const PairingScreen = () => {
 };
 
 export default PairingScreen;
-
