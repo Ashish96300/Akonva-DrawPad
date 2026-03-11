@@ -13,7 +13,6 @@ export default function Index() {
   useEffect(() => {
     const prepareSkia = async () => {
       if (Platform.OS === 'web') {
-        
         const { LoadSkiaWeb } = await import("@shopify/react-native-skia/lib/module/web");
         try {
           await LoadSkiaWeb();
@@ -32,11 +31,18 @@ export default function Index() {
       setIsPaired(true);
     });
 
+    // ADD THIS
+    socket.on('partnerDisconnected', ({ message }) => {
+      console.log('Desktop disconnected:', message);
+      setIsPaired(false);  // goes back to PairingScreen automatically
+    });
+
     return () => {
       socket.off('pairingSuccess');
+      socket.off('partnerDisconnected');  // ADD THIS
     };
   }, []);
-
+  
   if (!skiaLoaded) return null;
 
   return isPaired ? <DrawingScreen /> : <PairingScreen />;

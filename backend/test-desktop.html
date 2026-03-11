@@ -151,6 +151,12 @@
         document.getElementById('otp').style.display = 'none';
         canvas.style.display = 'none';
       });
+
+      socket.on('partnerDisconnected', ({ message }) => {
+        log(`✗ ${message}`, 'error');
+        setStatus('Mobile disconnected', 'disconnected');
+        canvas.style.display = 'none';
+    });
     }
 
     // function drawOnCanvas(data) {
