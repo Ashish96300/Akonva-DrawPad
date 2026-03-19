@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DrawPad</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      padding: 32px;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.5px;
+    }
+
+    p.subtitle {
+      font-size: 14px;
+      color: #64748b;
+      text-align: center;
+      margin-top: -24px;
+    }
+
+    /* Status pill */
+    #status {
+      padding: 6px 16px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+    .status-connecting { background: #1e293b; color: #64748b; }
+    .status-connected  { background: #052e16; color: #4ade80; }
+    .status-paired     { background: #0c1a4e; color: #60a5fa; }
+    .status-error      { background: #2d1212; color: #f87171; }
+
+    /* OTP display */
+    #otp-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    #otp {
+      font-size: 64px;
+      font-weight: 800;
+      letter-spacing: 16px;
+      color: #00ffa3;
+      font-variant-numeric: tabular-nums;
+      display: none;
+    }
+
+    #otp-hint {
+      font-size: 13px;
+      color: #475569;
+      display: none;
+    }
+
+    /* Paired state */
+    #paired-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .paired-icon {
+      font-size: 48px;
+    }
+
+    .paired-text {
+      font-size: 16px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    /* Connecting spinner */
+    #spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #1e293b;
+      border-top-color: #00ffa3;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 24px;
+      font-size: 11px;
+      color: #1e293b;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    #mode-switcher {
+    display: none;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.mode-btn {
+    padding: 8px 20px;
+    border-radius: 999px;
+    border: 1px solid #1e293b;
+    background: #1e293b;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mode-btn.active {
+    background: #0f3460;
+    border-color: #60a5fa;
+    color: #60a5fa;
+}
+
+.mode-btn:hover:not(.active) {
+    background: #273449;
+    color: #94a3b8;
+}
+  </style>
+</head>
+<body>
+
+  <h1>✏️ DrawPad</h1>
+  <p class="subtitle">Turn your phone into a drawing tablet</p>
+
+  <div id="status" class="status-connecting">Connecting...</div>
+    <div id="mode-switcher" style="display:none;">
+    <button id="btn-mousepad" class="mode-btn active" onclick="setMode('mousepad')">
+        🖱️ Mouse Pad
+    </button>
+    <button id="btn-stylus" class="mode-btn" onclick="setMode('stylus')">
+        ✏️ Stylus
+    </button>
+</div>
+  <div id="spinner"></div>
+
+  <div id="otp-container">
+    <div id="otp"></div>
+    <div id="otp-hint">Enter this code on your phone</div>
+  </div>
+
+  <div id="paired-container">
+    <div class="paired-icon">🎨</div>
+    <div class="paired-text">Phone connected!<br/>Start drawing on your device.</div>
+  </div>
+
+  <div class="footer">DrawPad v1.0</div>
+
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="./renderer.js"></script>
+</body>
+</html>
