@@ -1,7 +1,6 @@
 
 import express from 'express';
 import deviceRoutes from './src/routes/device.routes.js';
-import sessionRoutes from './src/routes/session.routes.js'
 
 const app = express();
 
@@ -16,7 +15,6 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/devices', deviceRoutes);
-app.use('/api/sessions', sessionRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
