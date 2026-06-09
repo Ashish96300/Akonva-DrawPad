@@ -6,24 +6,30 @@ import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import socket from '../services/socket';
 
-const EMIT_THROTTLE_MS = 12;
+const EMIT_THROTTLE_MS = 20;
 
 const useDrawing = () => {
-  const [laptopDims, setLaptopDims] = useState({ width: 0, height: 0 });
+  const [laptopDims, setLaptopDims] = useState({ width: 0, height: 0, offsetX: 0, offsetY: 0 });
   const [isReady, setIsReady] = useState(false);
   const [paths, setPaths] = useState<SkPath[]>([]);
   const [renderPath, setRenderPath] = useState<SkPath | null>(null);
 
   const currentPathRef = useRef<SkPath | null>(null);
-  const laptopDimsRef = useRef({ width: 0, height: 0 });
+  const laptopDimsRef = useRef({ width: 0, height: 0, offsetX: 0, offsetY: 0 });
   const isReadyRef = useRef(false);
   const lastEmitRef = useRef<number>(0);
 
   useEffect(() => {
     socket.on('canvasDimensions', (data: any) => {
       if (data.width && data.height) {
-        setLaptopDims({ width: data.width, height: data.height });
-        laptopDimsRef.current = { width: data.width, height: data.height };
+        const dims = {
+            width: data.width,
+            height: data.height,
+            offsetX: data.offsetX || 0,
+            offsetY: data.offsetY || 0
+        };
+        setLaptopDims(dims);
+        laptopDimsRef.current = dims;
         setIsReady(true);
         isReadyRef.current = true;
       }
@@ -32,96 +38,109 @@ const useDrawing = () => {
     return () => { socket.off('canvasDimensions'); };
   }, []);
 
-  // ── THE NORMALIZATION ENGINE ──
-const STYLUS_SCALE = 0.4; 
-
-const getMappedCoords = useCallback((phoneX: number, phoneY: number) => {
+  // ── 1. ABSOLUTE WACOM MATH (Dynamic Scaling) ──
+  const getLaptopCoords = useCallback((screenX: number, screenY: number) => {
     const { width: winW, height: winH } = Dimensions.get('window');
     const laptop = laptopDimsRef.current;
 
-    if (laptop.width === 0) return { x: 0, y: 0 };
+    if (laptop.width === 0 || laptop.height === 0) return { laptopX: 0, laptopY: 0 };
 
-    const scale = (laptop.width / winH) * STYLUS_SCALE;
+    // DYNAMIC SCALE: Stretch phone edges to perfectly fit laptop Safe Zone
+    // winH (long edge) maps to laptop.width
+    // winW (short edge) maps to laptop.height
+    const scaleX = laptop.width / winH; 
+    const scaleY = laptop.height / winW;
 
-    let targetX = phoneY * scale;
-    let targetY = (winW - phoneX) * scale;
+    // Landscape Rotation & Apply Dynamic Scale
+    const targetX = screenY * scaleX;
+    const targetY = (winW - screenX) * scaleY;
 
-    const offsetX = (laptop.width - (winH * scale)) / 2;
-    const offsetY = (laptop.height - (winW * scale)) / 2;
-
-    return {
-      x: Math.round(targetX + offsetX),
-      y: Math.round(targetY + offsetY)
+    // Add offsets to avoid toolbars
+    return { 
+      laptopX: Math.round(targetX + laptop.offsetX), 
+      laptopY: Math.round(targetY + laptop.offsetY) 
     };
-}, []);
+  }, []);
 
   const onStart = useCallback((x: number, y: number) => {
     if (!isReadyRef.current) return;
     
-    const { x: tx, y: ty } = getMappedCoords(x, y);
-
+    // 1. Draw perfectly under finger on phone
     const newPath = Skia.Path.Make();
     newPath.moveTo(x, y);
     currentPathRef.current = newPath;
     setRenderPath(newPath.copy());
 
-    socket.emit('draw', { type: 'start', x: tx, y: ty });
-  }, [getMappedCoords]);
+    // 2. Map to laptop and emit
+    const { laptopX, laptopY } = getLaptopCoords(x, y);
+    socket.emit('draw', { type: 'start', x: laptopX, y: laptopY });
+  }, [getLaptopCoords]);
 
   const onMove = useCallback((x: number, y: number) => {
     if (!isReadyRef.current || !currentPathRef.current) return;
     
-    const { x: tx, y: ty } = getMappedCoords(x, y);
-
+    // 1. Draw perfectly under finger on phone
     currentPathRef.current.lineTo(x, y);
     setRenderPath(currentPathRef.current.copy());
 
+    // 2. Map to laptop and emit
+    const { laptopX, laptopY } = getLaptopCoords(x, y);
+
     const now = Date.now();
     if (now - lastEmitRef.current > EMIT_THROTTLE_MS) {
-      socket.emit('draw', {
-        type: 'move',
-        x: tx,
-        y: ty,
-        points: [{ x: tx, y: ty }]
-      });
+      socket.emit('draw', { type: 'move', x: laptopX, y: laptopY, points: [{ x: laptopX, y: laptopY }] });
       lastEmitRef.current = now;
     }
-  }, [getMappedCoords]);
+  }, [getLaptopCoords]);
 
   const onEnd = useCallback(() => {
-    if (!currentPathRef.current) return;
+    const path = currentPathRef.current;
+    if (!path) return;
+
     try {
-      const completedPath = currentPathRef.current.copy();
-      setPaths(prev => [...prev, completedPath]);
-    } catch (e) {}
-    
+      const copy = path.copy();
+      setPaths(prev => [...prev, copy]);
+    } catch (e) {
+      console.log("⚠️ copy failed:", e);
+    }
+
     currentPathRef.current = null;
     setRenderPath(null);
     socket.emit('draw', { type: 'end' });
   }, []);
 
-  const stylusGesture = Gesture.Pan()
-    .minPointers(1)
-    .maxPointers(1)
-    .onStart((e) => { 
-      'worklet';
-      runOnJS(onStart)(e.x, e.y);
-    })
-    .onUpdate((e) => {
-      'worklet';
-      runOnJS(onMove)(e.x, e.y);
-    })
-    .onEnd(() => {
-      'worklet';
-      runOnJS(onEnd)();
+  // ── 2. NEW GESTURE: 2-Finger Swipe = CLEAR/NEXT PAGE ──
+  // Since you cover the whole screen now, panning the camera doesn't make sense.
+  // Instead, a 2-finger swipe clears your phone and tells the laptop to scroll down!
+  const swipeAction = Gesture.Pan()
+    .minPointers(2).maxPointers(2)
+    .onEnd((e) => {
+        'worklet';
+        // If they swipe left or up with 2 fingers, trigger "Next Page"
+        if (e.translationX < -50 || e.translationY < -50) {
+            runOnJS(turnToNextPage)();
+        }
     });
 
-  const clearCanvas = () => {
-    setPaths([]);
+  const stylusDraw = Gesture.Pan()
+    .minPointers(1).maxPointers(1)
+    .onStart((e) => { 'worklet'; runOnJS(onStart)(e.x, e.y); })
+    .onUpdate((e) => { 'worklet'; runOnJS(onMove)(e.x, e.y); })
+    .onEnd(() => { 'worklet'; runOnJS(onEnd)(); });
+
+  const stylusGesture = Gesture.Simultaneous(stylusDraw, swipeAction);
+
+  const clearCanvas = () => { setPaths([]); setRenderPath(null); };
+  
+  const turnToNextPage = () => {
+    setPaths([]); 
     setRenderPath(null);
+    // Remember to handle 'nextPage' in your backend nut-js code!
+    socket.emit('draw', { type: 'nextPage' }); 
   };
 
-  return { isReady, paths, renderPath, stylusGesture, clearCanvas };
+  // Note: I removed scrollOffset and resetView since we don't need a camera anymore!
+  return { isReady, paths, renderPath, stylusGesture, clearCanvas, turnToNextPage };
 };
 
 export default useDrawing;

@@ -21,7 +21,7 @@ const initializeSocket = (server) => {
         registerPairingHandlers(socket);
 
         socket.on('draw', async (data) => {
-              console.log("Draw received:", socket.roomId, socket.deviceType, data.type, "| mode:", roomModes.get(socket.roomId));
+              
             if (!socket.roomId) return;
             if (socket.deviceType === 'MOBILE') {
                 socket.to(socket.roomId).emit('draw', data);

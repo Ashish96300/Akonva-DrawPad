@@ -7,6 +7,7 @@ let isMouseDown = false;
 export const handleDraw = async (data, roomId, mode) => {
     try {
         if (mode === 'stylus') {
+            
             // 1. Map coordinates (ensure these are rounded)
             const targetX = Math.round(data.x);
             const targetY = Math.round(data.y);
