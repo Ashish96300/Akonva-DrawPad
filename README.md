@@ -1,236 +1,93 @@
-# 🎨 DrawPad Backend — Setup & Testing Guide
+# 🎨 Konvas / DrawPad
 
-A real-time drawing pad server where a **mobile device** acts as a drawing input for a **desktop screen**. Devices are paired using a 4-digit OTP code.
-
----
-
-## 📁 Project Structure
+Use your **phone as a wireless trackpad or stylus** for your laptop. The laptop app shows a 6‑digit code, you enter it on the phone, and your touch input moves the real mouse cursor over your local Wi‑Fi.
 
 ```
-backend/
-├── index.js                          → Starts the server
-├── app.js                            → HTTP routes setup
-├── .env                              → Environment variables
-├── src/
-│   ├── utils/
-│   │   ├── socket.js                 → All socket.io logic
-│   │   └── pairingLogic.js           → OTP generator
-│   ├── routes/
-│   │   └── device.routes.js          → HTTP endpoints
-│   ├── controller/
-│   │   └── deviceRegistration.controller.js
-│   ├── services/
-│   │   └── deviceRegistration.service.js
-│   └── configs/
-│       └── constants.js
-└── test/
-    ├── test-desktop.html             → Desktop test client
-    └── test-mobile.html              → Mobile test client
+ Phone (Expo app) ──── socket.io over LAN ────▶ Desktop app (Electron + embedded server) ──▶ moves your mouse (nut-js)
 ```
 
----
+## Repository layout
 
+| Folder | What it is |
+|--------|-----------|
+| `desktop-app/` | Electron app for Windows. Starts the server automatically and shows the pairing code. **This is what end users run.** |
+| `desktop-app/server/` | The socket.io server used inside the desktop app. |
+| `mobile-app/` | Expo / React Native Android app (the touchpad and stylus surface). |
+| `backend/` | Standalone copy of the same server, handy for development and browser test pages. |
 
-## 🚀 Step 1 — Open the Project in VS Code
+> `desktop-app/server/src` and `backend/src` are currently duplicates. If you change one, change the other.
 
-1. Open **VS Code**
-2. Click **File** → **Open Folder**
-3. Select your `backend` folder
-4. VS Code will open the project
+## Quick start (using the app)
 
----
+1. **Desktop:** start DrawPad. It shows a 6‑digit code and the address your phone should use, for example `192.168.1.5`.
+2. **Phone:** open the app, enter that address and the code, and tap pair.
+3. Pick **Mouse Pad** (relative movement, tap to click, two fingers to scroll) or **Stylus** (absolute position, draws while touching).
 
-## 📦 Step 2 — Install Dependencies
+Both devices must be on the **same Wi‑Fi network**. If pairing fails, allow DrawPad through the Windows firewall on private networks (port `3000`).
 
-1. In VS Code, open the terminal by pressing **Ctrl + `** (backtick key)
-2. You will see a terminal at the bottom of VS Code
-3. Run this command:
+## Development
+
+### Desktop app
 
 ```bash
+cd desktop-app
 npm install
+npm start                 # runs Electron + embedded server on port 3000
+DRAWPAD_DEBUG=1 npm start # same, with DevTools open
+npm run dist              # builds the Windows installer into dist/
 ```
 
-Wait for it to finish. You will see a `node_modules` folder appear in your project.
-
----
-
-## ⚙️ Step 3 — Create the `.env` File
-
-1. In VS Code, right click on the root folder in the file explorer on the left
-2. Click **New File**
-3. Name it `.env`
-4. Add this inside it:
-
-```
-PORT=3000
-```
-
-Save the file with **Ctrl + S**.
-
----
-
-## ▶️ Step 4 — Start the Server
-
-In the VS Code terminal, run:
+### Standalone server (optional)
 
 ```bash
+cd backend
+npm install
+cp .env.example .env      # PORT=3000
 npm run dev
 ```
 
-You should see this output in the terminal:
+Open `http://localhost:3000/health` to check it is running. Environment variables:
 
-```
-🚀 Server listening on PORT 3000
-📡 HTTP: http://localhost:3000
-🔌 WebSocket: ws://localhost:3000
-```
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `PORT` | `3000` | Server port |
+| `CORS_ORIGIN` | `*` | Allowed browser origins for socket.io |
+| `ENABLE_DEBUG_API` | off | Set to `true` to expose `GET /api/devices` and `/api/devices/stats` |
 
-✅ This means your server is running. **Keep this terminal open — do not close it.**
+`backend/test.html` and `backend/test-desktop.html` are simple browser clients for testing pairing without the apps.
 
----
+> The server controls the machine it runs on through `nut-js`, so it needs a real desktop session. It cannot run on a headless cloud server.
 
-## 🧪 Step 5 — Test the Server
+### Mobile app
 
-You need **two browser tabs** open at the same time — one acting as the Desktop and one acting as the Mobile.
+The app uses native modules (Skia, Gesture Handler), so **Expo Go will not work**. Use a development build:
 
-### Opening the test files
-
-There are two ways to open the HTML test files:
-
-**Option A — Directly from File Explorer (Easiest)**
-1. Open your File Explorer (Windows Explorer)
-2. Navigate to your `backend/test/` folder
-3. Double click `test-desktop.html` — it opens in your browser
-4. Go back to File Explorer and double click `test-mobile.html` — it opens in a new tab
-
-**Option B — From VS Code using Live Server**
-1. Install the **Live Server** extension in VS Code if you haven't:
-   - Click the Extensions icon on the left sidebar (looks like 4 squares)
-   - Search for `Live Server`
-   - Click **Install**
-2. In VS Code file explorer, find `test-desktop.html`
-3. **Right click on it** → click **Open with Live Server**
-4. Do the same for `test-mobile.html`
-
-> ⚠️ Do NOT click "Go Live" from the bottom bar — right click the specific file instead.
-
----
-
-## 🔗 Step 6 — Pair Desktop and Mobile
-
-Now you have two tabs open. Follow these steps in order:
-
-**In the Desktop tab (`test-desktop.html`):**
-1. Click the **"Connect as Desktop"** button
-2. You will see a 4-digit OTP code appear on screen like `4829`
-3. Keep this tab open
-
-**In the Mobile tab (`test-mobile.html`):**
-1. Click the **"Connect as Mobile"** button
-2. A text box will appear asking for the OTP
-3. Type the 4-digit OTP you saw on the Desktop tab
-4. Click **"Pair with Desktop"**
-
-✅ Both tabs should now show **"Paired Successfully"**
-
----
-
-## ✏️ Step 7 — Test Drawing
-
-1. Go to the **Mobile tab**
-2. Draw anything on the canvas using your mouse
-3. Switch to the **Desktop tab**
-4. You should see the drawing appear on the Desktop canvas in real time 🎨
-
-You can also:
-- Change the **brush color** using the color picker
-- Change the **brush size** using the slider
-- Click **Clear** to clear the canvas on both devices
-
----
-
-## 🌐 Step 8 — Test HTTP Endpoints
-
-While your server is running, you can also test the HTTP endpoints.
-
-Open a new browser tab and visit these URLs:
-
-| URL | What it does |
-|-----|--------------|
-| `http://localhost:3000/` | Check if server is running |
-| `http://localhost:3000/health` | Server health check |
-| `http://localhost:3000/api/devices` | See all connected devices |
-| `http://localhost:3000/api/devices/stats` | See device counts |
-
-Or click the **"Get Stats"** button in either test file to see stats directly.
-
----
-
-## 🛑 Stopping the Server
-
-To stop the server, click on the VS Code terminal and press:
-```
-Ctrl + C
+```bash
+cd mobile-app
+npm install
+npm install -g eas-cli && eas login
+eas build --profile development --platform android   # install the resulting APK
+npx expo start --dev-client
 ```
 
-You will see:
-```
-SIGINT signal received: closing HTTP server
-HTTP server closed
-```
+Use `eas build --profile preview --platform android` for a shareable APK. To pre-fill the server address, set `EXPO_PUBLIC_SERVER_URL` (for example `http://192.168.1.5:3000`) before building. The last address you used is remembered on the phone.
 
----
+## How pairing works
 
-## ❗ Common Errors & Fixes
+1. Desktop registers and receives a random 6‑digit code (valid for 2 minutes).
+2. Phone connects to the desktop's address and sends the code.
+3. Both join a socket.io room named after the code; the desktop shares its screen size.
+4. Only a paired phone can send `draw` and `gesture` events. After 5 wrong codes a connection is dropped.
 
-**Error: `Cannot find module`**
-```
-Run npm install again
-```
+## Security notes
 
-**Error: `Port 3000 already in use`**
-```
-Change PORT=3001 in your .env file and restart
-```
+- Traffic is plain HTTP/WebSocket on your local network (the Android app allows cleartext for this reason). Use trusted Wi‑Fi only.
+- Anyone who can reach port 3000 and guess a live code can control your mouse while the app is open, so close the app when you are not using it.
 
-**Browser shows "Cannot connect"**
-```
-Make sure your server is running (npm run dev) before opening the test files
-```
+## Tech stack
 
-**OTP not working**
-```
-Make sure you type the exact 4 digit number shown on the Desktop tab
-OTPs expire when the desktop disconnects — reconnect and get a new one
-```
+Electron, Node.js, Express 5, socket.io, `@nut-tree-fork/nut-js`, Expo / React Native, Skia, NativeWind.
 
-**Drawing not showing on Desktop**
-```
-Make sure both tabs show "Paired Successfully" before drawing
-If not, disconnect both and start the pairing process again
-```
+## Authors
 
----
-
-## 📡 How It Works (Simple Explanation)
-
-```
-Desktop opens → Server gives OTP (e.g. 4829)
-                        ↓
-Mobile enters OTP → Both join room "4829"
-                        ↓
-Mobile draws → Server forwards to room "4829"
-                        ↓
-Desktop receives drawing data → Shows on screen
-```
-
----
-
-## 🔧 Tech Stack
-
-| Technology | Purpose |
-|------------|---------|
-| Node.js | Backend runtime |
-| Express.js | HTTP server |
-| Socket.io | Real-time communication |
-| HTML Canvas | Drawing in browser |
+Ashish, Harsh

@@ -65,6 +65,12 @@
       display: none;
     }
 
+    #server-address {
+      margin-top: 10px;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+
     #otp-hint {
       font-size: 13px;
       color: #475569;
@@ -159,6 +165,7 @@
   <div id="otp-container">
     <div id="otp"></div>
     <div id="otp-hint">Enter this code on your phone</div>
+    <div id="server-address"></div>
   </div>
 
   <div id="paired-container">
@@ -168,7 +175,8 @@
 
   <div class="footer">DrawPad v1.0</div>
 
-  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <!-- Served by the bundled local server, so it works offline -->
+  <script src="http://localhost:3000/socket.io/socket.io.js"></script>
 <script src="./renderer.js"></script>
 </body>
 </html>
