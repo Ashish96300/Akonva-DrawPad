@@ -1,30 +1,37 @@
-
 import http from 'http';
-import dotenv from 'dotenv';
-import app from './app.js';
-import initializeSocket from './src/utils/socket.js'
 import { networkInterfaces } from 'os';
+import app from './app.js';
+import initializeSocket from './src/utils/socket.js';
 
-dotenv.config({
-  path: './.env'
-});
+let server = null;
 
-const PORT = process.env.PORT || 3000;
-const server = http.createServer(app);
-initializeSocket(server)
+export const getLanAddresses = () =>
+  Object.values(networkInterfaces())
+    .flat()
+    .filter((n) => n && n.family === 'IPv4' && !n.internal)
+    .map((n) => n.address);
 
+/** Start the DrawPad server. Resolves with { port, addresses }. */
+export const startServer = (port = Number(process.env.PORT) || 3000) =>
+  new Promise((resolve, reject) => {
+    if (server) return resolve({ port, addresses: getLanAddresses() });
 
-server.listen(PORT, "0.0.0.0",() => {
-  console.log(`🚀 Server listening on PORT ${PORT}`);
-  console.log(`📡 HTTP: http://localhost:${PORT}`);
-});
-console.log("🔥 NEW SERVER INSTANCE STARTED");
+    const s = http.createServer(app);
+    initializeSocket(s);
+    s.once('error', reject);
+    s.listen(port, '0.0.0.0', () => {
+      server = s;
+      console.log(`🚀 DrawPad server listening on port ${port}`);
+      getLanAddresses().forEach((ip) => console.log(`📱 Mobile connect to: ${ip}:${port}`));
+      resolve({ port, addresses: getLanAddresses() });
+    });
+  });
 
-server.on('connection', (socket) => {
-    console.log('🔌 Raw TCP connection from:', socket.remoteAddress);
-});
-
-const nets = networkInterfaces();
-Object.values(nets).flat()
-    .filter(n => n.family === 'IPv4' && !n.internal)
-    .forEach(n => console.log('📱 Mobile connect to:', `http://${n.address}:3000`));
+export const stopServer = () =>
+  new Promise((resolve) => {
+    if (!server) return resolve();
+    const s = server;
+    server = null;
+    s.close(() => resolve());
+    s.closeAllConnections?.();
+  });

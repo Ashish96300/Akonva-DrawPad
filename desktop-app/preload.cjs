@@ -1,9 +1,13 @@
-import { contextBridge, ipcRenderer } from 'electron';
+const { contextBridge, ipcRenderer } = require('electron');
+
+// Only allow the channels the renderer actually needs.
+const ALLOWED_CHANNELS = ['server-info'];
 
 contextBridge.exposeInMainWorld('drawpad', {
-    // Renderer → Main
-    send: (channel, data) => ipcRenderer.send(channel, data),
     // Main → Renderer
-    on: (channel, callback) => ipcRenderer.on(channel, (_, data) => callback(data)),
-    off: (channel) => ipcRenderer.removeAllListeners(channel),
+    on: (channel, callback) => {
+        if (!ALLOWED_CHANNELS.includes(channel)) return;
+        ipcRenderer.removeAllListeners(channel);
+        ipcRenderer.on(channel, (_, data) => callback(data));
+    },
 });

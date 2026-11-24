@@ -25,11 +25,16 @@
     "win": {
       "target": "nsis",
       "signAndEditExecutable": false
+    },
+    "appId": "com.ashish96300.drawpad",
+    "productName": "DrawPad",
+    "asarUnpack": [
+      "node_modules/@nut-tree-fork/**/*"
+    ],
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true
     }
-  },
-  "nsis": {
-    "oneClick": true,
-    "allowToChangeInstallationDirectory": false,
-    "createDesktopShortcut": true
   }
 }
