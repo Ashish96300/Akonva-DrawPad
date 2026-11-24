@@ -34,6 +34,8 @@ const useMousepad = (sensitivity: number = 7) => {
       prevX.value = 0;
       prevY.value = 0;
     })
+    // This callback executes later as a UI-thread worklet; runOnJS accesses JS refs only on dispatch.
+    // eslint-disable-next-line react-hooks/refs
     .onUpdate((e) => {
       'worklet';
       const dx = (e.translationX - prevX.value) * sharedSensitivity.value;

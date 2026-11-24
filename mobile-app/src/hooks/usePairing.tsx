@@ -24,40 +24,66 @@ const usePairing = () => {
       Alert.alert('Missing Field', 'Please enter your laptop IP address.');
       return;
     }
-    if (otp.length < 6) {
+    if (!/^\d{6}$/.test(otp.trim())) {
       Alert.alert('Invalid Code', 'Please enter the code shown on your laptop.');
       return;
     }
 
     setLoading(true);
+    let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+
+    const cleanup = () => {
+      clearTimeout(timeout);
+      socket.off('connect', handleConnect);
+      socket.off('pairingSuccess', handlePairingSuccess);
+      socket.off('error', handlePairingError);
+    };
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      setLoading(false);
+    };
+    const handlePairingSuccess = () => finish();
+    const handlePairingError = ({ message }: { message?: string } = {}) => {
+      finish();
+      Alert.alert('Could not pair', message || 'Check the pairing code and try again.');
+    };
+    const handleConnect = () => {
+      if (settled) return;
+      socket.emit('registerMobile', { otp: otp.trim() });
+    };
 
     try {
       console.log('1. Saving IP...');
       await SecureStore.setItemAsync(STORAGE_KEY, ipAddress.trim());
 
+      // Listen before reconnecting so a fast connection cannot be missed.
+      socket.on('connect', handleConnect);
+      socket.once('pairingSuccess', handlePairingSuccess);
+      socket.once('error', handlePairingError);
       console.log('2. Reconnecting to:', ipAddress.trim());
       reconnectWithIP(ipAddress.trim());
 
-      console.log('3. Waiting for connection...');
-      socket.once('connect', () => {
-        console.log('4. Connected! Pairing with OTP:', otp);
-        socket.emit('registerMobile', { otp: otp.trim() });
-      });
-
       if (socket.connected) {
-        console.log('4. Already connected, pairing with OTP:', otp);
-        socket.emit('registerMobile', { otp: otp.trim() });
+        handleConnect();
       }
 
-      setTimeout(() => {
-        if (!socket.connected) {
-          setLoading(false);
-          Alert.alert('Connection Timeout', 'Could not reach the server. Check your IP.');
-        }
-      }, 5000);
+      timeout = setTimeout(() => {
+        if (settled) return;
+        const wasConnected = socket.connected;
+        finish();
+        Alert.alert(
+          wasConnected ? 'Pairing timed out' : 'Connection timed out',
+          wasConnected
+            ? 'The server did not accept the code. Check that it matches the current code on your laptop.'
+            : 'Could not reach the server. Check the laptop IP and make sure both devices are on the same Wi-Fi.'
+        );
+      }, 10000);
 
     } catch (err) {
-      setLoading(false);
+      finish();
       console.error('Pairing error:', err);
       Alert.alert('Error', 'Something went wrong.');
     }

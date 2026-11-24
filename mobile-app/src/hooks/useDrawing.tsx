@@ -6,10 +6,9 @@ import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import socket from '../services/socket';
 
-const EMIT_THROTTLE_MS = 20;
+const MOVE_BATCH_INTERVAL_MS = 8;
 
 const useDrawing = () => {
-  const [laptopDims, setLaptopDims] = useState({ width: 0, height: 0, offsetX: 0, offsetY: 0 });
   const [isReady, setIsReady] = useState(false);
   const [paths, setPaths] = useState<SkPath[]>([]);
   const [renderPath, setRenderPath] = useState<SkPath | null>(null);
@@ -17,7 +16,24 @@ const useDrawing = () => {
   const currentPathRef = useRef<SkPath | null>(null);
   const laptopDimsRef = useRef({ width: 0, height: 0, offsetX: 0, offsetY: 0 });
   const isReadyRef = useRef(false);
-  const lastEmitRef = useRef<number>(0);
+  const pendingPointsRef = useRef<{ x: number; y: number }[]>([]);
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const flushMoveBatch = useCallback(() => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    const points = pendingPointsRef.current;
+    if (points.length === 0) return;
+    pendingPointsRef.current = [];
+    const lastPoint = points[points.length - 1];
+    socket.emit('draw', { type: 'move', ...lastPoint, points });
+  }, []);
+
+  useEffect(() => () => {
+    if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+  }, []);
 
   useEffect(() => {
     socket.on('canvasDimensions', (data: any) => {
@@ -28,7 +44,6 @@ const useDrawing = () => {
             offsetX: data.offsetX || 0,
             offsetY: data.offsetY || 0
         };
-        setLaptopDims(dims);
         laptopDimsRef.current = dims;
         setIsReady(true);
         isReadyRef.current = true;
@@ -64,6 +79,7 @@ const useDrawing = () => {
 
   const onStart = useCallback((x: number, y: number) => {
     if (!isReadyRef.current) return;
+    flushMoveBatch();
     
     // 1. Draw perfectly under finger on phone
     const newPath = Skia.Path.Make();
@@ -74,7 +90,7 @@ const useDrawing = () => {
     // 2. Map to laptop and emit
     const { laptopX, laptopY } = getLaptopCoords(x, y);
     socket.emit('draw', { type: 'start', x: laptopX, y: laptopY });
-  }, [getLaptopCoords]);
+  }, [flushMoveBatch, getLaptopCoords]);
 
   const onMove = useCallback((x: number, y: number) => {
     if (!isReadyRef.current || !currentPathRef.current) return;
@@ -86,16 +102,16 @@ const useDrawing = () => {
     // 2. Map to laptop and emit
     const { laptopX, laptopY } = getLaptopCoords(x, y);
 
-    const now = Date.now();
-    if (now - lastEmitRef.current > EMIT_THROTTLE_MS) {
-      socket.emit('draw', { type: 'move', x: laptopX, y: laptopY, points: [{ x: laptopX, y: laptopY }] });
-      lastEmitRef.current = now;
+    pendingPointsRef.current.push({ x: laptopX, y: laptopY });
+    if (!flushTimerRef.current) {
+      flushTimerRef.current = setTimeout(flushMoveBatch, MOVE_BATCH_INTERVAL_MS);
     }
-  }, [getLaptopCoords]);
+  }, [flushMoveBatch, getLaptopCoords]);
 
   const onEnd = useCallback(() => {
     const path = currentPathRef.current;
     if (!path) return;
+    flushMoveBatch();
 
     try {
       const copy = path.copy();
@@ -107,7 +123,7 @@ const useDrawing = () => {
     currentPathRef.current = null;
     setRenderPath(null);
     socket.emit('draw', { type: 'end' });
-  }, []);
+  }, [flushMoveBatch]);
 
   // ── 2. NEW GESTURE: 2-Finger Swipe = CLEAR/NEXT PAGE ──
   // Since you cover the whole screen now, panning the camera doesn't make sense.
@@ -124,9 +140,13 @@ const useDrawing = () => {
 
   const stylusDraw = Gesture.Pan()
     .minPointers(1).maxPointers(1)
+    // These worklet callbacks run later on the UI thread; runOnJS only reads the refs then.
+    // eslint-disable-next-line react-hooks/refs
     .onStart((e) => { 'worklet'; runOnJS(onStart)(e.x, e.y); })
+    // eslint-disable-next-line react-hooks/refs
     .onUpdate((e) => { 'worklet'; runOnJS(onMove)(e.x, e.y); })
-    .onEnd(() => { 'worklet'; runOnJS(onEnd)(); });
+    // eslint-disable-next-line react-hooks/refs
+    .onFinalize(() => { 'worklet'; runOnJS(onEnd)(); });
 
   const stylusGesture = Gesture.Simultaneous(stylusDraw, swipeAction);
 

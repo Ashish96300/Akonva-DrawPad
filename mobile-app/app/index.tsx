@@ -51,6 +51,13 @@ export default function Index() {
   if (!skiaLoaded) return null;
 
   return isPaired 
-    ? <DrawingScreen mode={mode} sensitivity={sensitivity} /> 
+    ? <DrawingScreen
+        mode={mode}
+        sensitivity={sensitivity}
+        onModeChange={(nextMode) => {
+          setMode(nextMode);
+          socket.emit('setMode', { mode: nextMode });
+        }}
+      />
     : <PairingScreen />;
 }

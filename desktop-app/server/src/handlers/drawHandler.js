@@ -7,7 +7,9 @@ const mouseDownRooms = new Set();
 
 export const handleDraw = async (data, roomId, mode) => {
     try {
-        if (mode === 'stylus') {
+        if (data.type === 'nextPage') {
+            await mouse.scrollDown(5);
+        } else if (mode === 'stylus') {
             
             // 1. Map coordinates (ensure these are rounded)
             const targetX = Math.round(data.x);
@@ -23,21 +25,19 @@ export const handleDraw = async (data, roomId, mode) => {
                 }
             } 
             
-            // ── STYLUS MOVE (High Speed) ──
+            // ── STYLUS MOVE: process every batched sample in order ──
             else if (data.type === 'move') {
-                // If we missed a 'start' packet, force the pen down
                 if (!mouseDownRooms.has(roomId)) {
                     await mouse.pressButton(Button.LEFT);
                     mouseDownRooms.add(roomId);
                 }
 
-                // OPTIMIZATION: Take the last point in the buffer to avoid 'await' lag
-                const p = (data.points && data.points.length > 0) 
-                          ? data.points[data.points.length - 1] 
-                          : { x: targetX, y: targetY };
-
-                // We don't 'await' here so the socket can keep up with your hand
-                mouse.setPosition(new Point(Math.round(p.x), Math.round(p.y)));
+                const points = Array.isArray(data.points) && data.points.length > 0
+                    ? data.points
+                    : [{ x: targetX, y: targetY }];
+                for (const point of points) {
+                    await mouse.setPosition(new Point(Math.round(point.x), Math.round(point.y)));
+                }
             } 
             
             // ── STYLUS END ──

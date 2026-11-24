@@ -30,14 +30,15 @@ export const processDelta = (roomId, rawDx, rawDy) => {
     
     state.lastTime = now;
 
-    const SMOOTH = 0.25; 
+    // A lower blend factor filters small touch jitter without making the cursor feel heavy.
+    const SMOOTH = 0.2;
     state.velocityX = state.velocityX * (1 - SMOOTH) + rawDx * SMOOTH;
     state.velocityY = state.velocityY * (1 - SMOOTH) + rawDy * SMOOTH;
 
     const speed = Math.sqrt(state.velocityX ** 2 + state.velocityY ** 2);
     
     const BASE_SENSITIVITY = 1.2;
-    const CURVE_FACTOR = 0.03;
+    const CURVE_FACTOR = 0.02;
     const ACCELERATION = BASE_SENSITIVITY + (speed * CURVE_FACTOR);
 
     const smoothedDx = state.velocityX * ACCELERATION;

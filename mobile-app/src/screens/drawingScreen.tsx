@@ -1,19 +1,26 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
-import { Canvas, Path ,Group} from "@shopify/react-native-skia";
+import { Canvas, Path } from "@shopify/react-native-skia";
 import { GestureDetector ,GestureHandlerRootView ,TouchableOpacity} from 'react-native-gesture-handler';
 import useDrawing from '../hooks/useDrawing';
 import useMousepad from '../hooks/useMousepad';
 
-const DrawingScreen = ({ mode = 'mousepad', sensitivity = 1.5 }: {
+const DrawingScreen = ({ mode = 'mousepad', sensitivity = 1.5, onModeChange }: {
   mode?: 'mousepad' | 'stylus';
   sensitivity?: number;
+  onModeChange: (mode: 'mousepad' | 'stylus') => void;
 }) => {
   // const { isReady, paths, renderPath, handleTouch } = useDrawing();
    const { isReady, paths, renderPath, stylusGesture, clearCanvas ,turnToNextPage } = useDrawing();
 
   const { composed } = useMousepad(sensitivity);
+  const toggleMode = () => onModeChange(mode === 'mousepad' ? 'stylus' : 'mousepad');
+  const modeButton = (label: string) => (
+    <TouchableOpacity onPress={toggleMode} className="bg-cyan-700 px-4 py-3 rounded-xl border border-cyan-400/40">
+      <Text className="text-white text-xs font-bold">{label}</Text>
+    </TouchableOpacity>
+  );
 
   if (!isReady) {
     return (
@@ -39,6 +46,7 @@ if (mode === 'stylus') {
           </Canvas>
 
           {/* UI BUTTONS */}
+          <View className="absolute top-8 left-8">{modeButton('MOUSE PAD')}</View>
           <View className="absolute top-8 right-8 flex-row items-center">
             <TouchableOpacity onPress={clearCanvas} className="bg-red-900/80 px-4 py-3 rounded-xl mr-3 border border-red-500/30 shadow-lg shadow-black/50">
               <Text className="text-white text-xs font-bold tracking-wider">CLEAR PAGE</Text>
@@ -60,6 +68,7 @@ return (
       <View 
         className="flex-1 bg-slate-900 justify-center items-center"
       >
+        <View className="absolute top-8 right-6">{modeButton('DRAW / STYLUS')}</View>
         <Text className="text-slate-600 text-xs tracking-widest uppercase">
           🖱️ Mouse Pad
         </Text>

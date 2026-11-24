@@ -3,3 +3,9 @@ node_modules/
 android/
 ios/
 .git/
+.env
+.env.*
+app-example/
+dist/
+web-build/
+.vscode/

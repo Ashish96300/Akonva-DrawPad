@@ -1,16 +1,9 @@
 
 
-import io, { Socket } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import * as SecureStore from 'expo-secure-store';
 
 const STORAGE_KEY = 'AKONVA_SERVER_IP';
-
-const getInitialURL = async () => {
-  const savedIP = await SecureStore.getItemAsync(STORAGE_KEY);
-  const finalIP = savedIP || process.env.EXPO_PUBLIC_SERVER_URL || '192.168.1.1:3000';
-  const sanitizedUrl = finalIP.replace(/^https?:\/\//, '');
-  return sanitizedUrl.includes(':') ? `http://${sanitizedUrl}` : `http://${sanitizedUrl}:3000`;
-};
 
 // Initialize with fallback URL immediately so socket is never null
 const SERVER_URL = process.env.EXPO_PUBLIC_SERVER_URL || 'http://192.168.1.1:3000';

@@ -17,11 +17,15 @@ Use your **phone as a wireless trackpad or stylus** for your laptop. The laptop 
 
 > `desktop-app/server/src` and `backend/src` are currently duplicates. If you change one, change the other.
 
+## Install
+
+Download the latest release from [GitHub Releases](https://github.com/Ashish96300/konvas/releases/latest). Windows users install the `.exe`; Android users install the `.apk`. Start DrawPad on Windows, then pair the Android app using the laptop address and code shown in the desktop app.
+
 ## Quick start (using the app)
 
 1. **Desktop:** start DrawPad. It shows a 6‑digit code and the address your phone should use, for example `192.168.1.5`.
 2. **Phone:** open the app, enter that address and the code, and tap pair.
-3. Pick **Mouse Pad** (relative movement, tap to click, two fingers to scroll) or **Stylus** (absolute position, draws while touching).
+3. The phone opens in **Mouse Pad** mode (relative movement, tap to click, two fingers to scroll). Tap **DRAW / STYLUS** on the phone to draw directly on the laptop; stylus strokes are sent in small batches to preserve the full path. Use **MOUSE PAD** to switch back. **NEXT PAGE** scrolls the active laptop app down.
 
 Both devices must be on the **same Wi‑Fi network**. If pairing fails, allow DrawPad through the Windows firewall on private networks (port `3000`).
 
