@@ -1,48 +1,84 @@
 
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import usePairing from '../hooks/usePairing';
 
 const PairingScreen = () => {
-  const { otp, setOtp, loading, handlePairing } = usePairing();
+  const { ipAddress, setIpAddress, otp, setOtp, loading, handlePairing } = usePairing();
 
   return (
-    <View className="flex-1 justify-center items-center bg-white px-6">
-      <View className="items-center mb-10">
-        <Text className="text-3xl font-bold text-slate-800">Connect Device</Text>
-        <Text className="text-slate-500 mt-2 text-center">
-          Enter the code displayed on your laptop screen to start drawing.
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      className="flex-1 bg-slate-950"
+    >
+      <View className="flex-1 justify-center items-center px-6">
+        
+        {/* Header */}
+        <View className="items-center mb-12">
+          <Text className="text-4xl font-bold text-white">DrawPad</Text>
+          <Text className="text-slate-400 mt-2 text-center text-sm">
+            Connect your phone to your laptop
+          </Text>
+        </View>
+
+        {/* Input Fields */}
+        <View className="w-full gap-4">
+          
+          {/* IP Address Input */}
+          <View>
+            <Text className="text-slate-400 text-xs mb-2 uppercase tracking-widest">
+              Laptop IP Address
+            </Text>
+            <TextInput
+              className="w-full bg-slate-800 text-white text-lg px-4 py-3 rounded-xl"
+              placeholder="e.g. 192.168.1.5"
+              placeholderTextColor="#475569"
+              keyboardType="decimal-pad"
+              value={ipAddress}
+              onChangeText={setIpAddress}
+              editable={!loading}
+            />
+          </View>
+
+          {/* OTP Input */}
+          <View>
+            <Text className="text-slate-400 text-xs mb-2 uppercase tracking-widest">
+              Pairing Code
+            </Text>
+            <TextInput
+              className="w-full bg-slate-800 text-white text-center text-4xl tracking-widest px-4 py-3 rounded-xl"
+              placeholder="0000"
+              placeholderTextColor="#475569"
+              keyboardType="number-pad"
+              maxLength={6}
+              value={otp}
+              onChangeText={setOtp}
+              editable={!loading}
+            />
+          </View>
+
+          {/* Pair Button */}
+          <TouchableOpacity
+            onPress={handlePairing}
+            disabled={loading}
+            className={`w-full py-4 rounded-xl items-center mt-2 ${loading ? 'bg-slate-700' : 'bg-cyan-500'}`}
+          >
+            {loading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text className="text-white text-lg font-semibold">Connect</Text>
+            )}
+          </TouchableOpacity>
+
+        </View>
+
+        {/* Footer */}
+        <Text className="absolute bottom-10 text-slate-600 text-xs text-center px-6">
+          Ensure both devices are on the same Wi-Fi network
         </Text>
+
       </View>
-
-      <View className="w-full space-y-6">
-        <TextInput
-          className="w-full border-b-2 border-slate-300 text-center text-4xl tracking-widest py-2 text-slate-800 focus:border-blue-500"
-          placeholder="0000"
-          keyboardType="number-pad"
-          maxLength={6}
-          value={otp}
-          onChangeText={setOtp}
-          editable={!loading}
-        />
-
-        <TouchableOpacity
-          onPress={handlePairing}
-          disabled={loading}
-          className={`w-full py-4 rounded-xl items-center ${loading ? 'bg-slate-400' : 'bg-blue-600'}`}
-        >
-          {loading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text className="text-white text-lg font-semibold">Pair Now</Text>
-          )}
-        </TouchableOpacity>
-      </View>
-
-      <Text className="absolute bottom-10 text-slate-400 text-sm">
-        Ensure both devices are on the same Wi-Fi
-      </Text>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
