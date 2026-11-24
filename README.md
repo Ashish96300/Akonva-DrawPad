@@ -1,97 +1,209 @@
-# 🎨 Konvas / DrawPad
 
-Use your **phone as a wireless trackpad or stylus** for your laptop. The laptop app shows a 6‑digit code, you enter it on the phone, and your touch input moves the real mouse cursor over your local Wi‑Fi.
 
+# Konvas
+
+**Turn your Android phone into a wireless trackpad and stylus for your Windows PC.**
+
+Konvas lets you control your computer's mouse cursor, scroll through content, and draw on your desktop using your phone. Both devices connect over the same local Wi-Fi network—no USB cable required.
+
+<!-- Screenshots / preview images will be added here later. -->
+
+## Features
+
+- **Wireless mouse control** — move the cursor using your phone's touch surface.
+- **Tap to click** — use simple touch gestures for mouse interaction.
+- **Two-finger scrolling** — scroll through pages and apps from your phone.
+- **Stylus mode** — draw directly on your Windows desktop.
+- **Quick pairing** — connect using the six-digit code shown by the desktop app.
+- **Local network connection** — your phone and PC communicate over your Wi-Fi network.
+
+## Downloads
+
+Get the latest published builds from the **[Konvas Releases page](https://github.com/Ashish96300/konvas/releases/latest)**.
+
+Download the appropriate file from the release assets for your device:
+
+- **Windows:** desktop application installer.
+- **Android:** mobile application APK.
+
+> Always download the latest version from the Releases page. Available files and version numbers are listed under each release's **Assets** section.
+
+## Getting started
+
+### 1. Install the apps
+
+Install the Windows desktop application on your PC and the Android APK on your phone.
+
+### 2. Connect both devices to the same Wi-Fi
+
+Your phone and Windows PC must be connected to the same local network.
+
+### 3. Pair your phone with your PC
+
+1. Open Konvas on your Windows PC. The desktop app displays a six-digit pairing code and the local network address.
+2. Open the Android app.
+3. Enter the address and six-digit code shown on your PC.
+4. Tap **Pair**.
+
+Once connected, your phone can control the PC.
+
+### 4. Use the touch controls
+
+- **Mouse Pad:** move the cursor, tap to click, and use two fingers to scroll.
+- **Draw / Stylus:** draw directly on the computer screen.
+- **Next Page:** scroll the active desktop app down.
+- Switch back to **Mouse Pad** whenever you want regular cursor controls.
+
+## Screenshots
+
+<!--
+Add screenshots here when they are ready.
+
+Suggested images:
+- Desktop pairing screen
+- Android mouse pad screen
+- Stylus / drawing mode
+-->
+
+## How it works
+
+The Windows application runs an Electron desktop app with an embedded Node.js and Socket.IO server. The Android app connects to that server over your local network.
+
+```text
+Android phone
+     |
+     | Socket.IO over local Wi-Fi
+     v
+Windows desktop app (Electron + embedded server)
+     |
+     v
+Mouse and drawing input on your PC
 ```
- Phone (Expo app) ──── socket.io over LAN ────▶ Desktop app (Electron + embedded server) ──▶ moves your mouse (nut-js)
-```
 
-## Repository layout
+During pairing, the desktop app generates a temporary six-digit code. The phone submits that code to join the matching Socket.IO session. The pairing code expires after two minutes, and a connection is dropped after five incorrect attempts.
 
-| Folder | What it is |
-|--------|-----------|
-| `desktop-app/` | Electron app for Windows. Starts the server automatically and shows the pairing code. **This is what end users run.** |
-| `desktop-app/server/` | The socket.io server used inside the desktop app. |
-| `mobile-app/` | Expo / React Native Android app (the touchpad and stylus surface). |
-| `backend/` | Standalone copy of the same server, handy for development and browser test pages. |
+## Repository structure
 
-> `desktop-app/server/src` and `backend/src` are currently duplicates. If you change one, change the other.
+| Directory | Description |
+|---|---|
+| `desktop-app/` | Electron application for Windows. Starts the embedded server and displays the pairing code. |
+| `desktop-app/server/` | Socket.IO server bundled with the desktop application. |
+| `mobile-app/` | Expo / React Native Android application containing the touchpad and stylus interface. |
+| `backend/` | Standalone copy of the server, useful for development and browser-based testing. |
 
-## Install
+> **Development note:** `desktop-app/server/src` and `backend/src` are currently duplicate server implementations. Keep them in sync when making server changes.
 
-Download the latest release from [GitHub Releases](https://github.com/Ashish96300/konvas/releases/latest). Windows users install the `.exe`; Android users install the `.apk`. Start DrawPad on Windows, then pair the Android app using the laptop address and code shown in the desktop app.
+## Development setup
 
-## Quick start (using the app)
+### Requirements
 
-1. **Desktop:** start DrawPad. It shows a 6‑digit code and the address your phone should use, for example `192.168.1.5`.
-2. **Phone:** open the app, enter that address and the code, and tap pair.
-3. The phone opens in **Mouse Pad** mode (relative movement, tap to click, two fingers to scroll). Tap **DRAW / STYLUS** on the phone to draw directly on the laptop; stylus strokes are sent in small batches to preserve the full path. Use **MOUSE PAD** to switch back. **NEXT PAGE** scrolls the active laptop app down.
+- Node.js and npm
+- Android development environment / EAS CLI for mobile builds
+- Windows for running and packaging the desktop application
 
-Both devices must be on the **same Wi‑Fi network**. If pairing fails, allow DrawPad through the Windows firewall on private networks (port `3000`).
-
-## Development
-
-### Desktop app
+### Desktop application
 
 ```bash
 cd desktop-app
 npm install
-npm start                 # runs Electron + embedded server on port 3000
-DRAWPAD_DEBUG=1 npm start # same, with DevTools open
-npm run dist              # builds the Windows installer into dist/
+npm start
 ```
 
-### Standalone server (optional)
+The desktop app starts Electron with its embedded server on port `3000`.
+
+To open DevTools while developing:
+
+```bash
+DRAWPAD_DEBUG=1 npm start
+```
+
+To build the Windows installer:
+
+```bash
+npm run dist
+```
+
+The generated installer is placed in the `dist/` directory.
+
+### Standalone backend (optional)
 
 ```bash
 cd backend
 npm install
-cp .env.example .env      # PORT=3000
+cp .env.example .env
 npm run dev
 ```
 
-Open `http://localhost:3000/health` to check it is running. Environment variables:
+The standalone server uses port `3000` by default. Visit `http://localhost:3000/health` to check whether it is running.
 
-| Variable | Default | Purpose |
-|----------|---------|---------|
+| Environment variable | Default | Description |
+|---|---|---|
 | `PORT` | `3000` | Server port |
-| `CORS_ORIGIN` | `*` | Allowed browser origins for socket.io |
-| `ENABLE_DEBUG_API` | off | Set to `true` to expose `GET /api/devices` and `/api/devices/stats` |
+| `CORS_ORIGIN` | `*` | Allowed browser origins for Socket.IO |
+| `ENABLE_DEBUG_API` | Off | Set to `true` to expose development device endpoints |
 
-`backend/test.html` and `backend/test-desktop.html` are simple browser clients for testing pairing without the apps.
+The files `backend/test.html` and `backend/test-desktop.html` provide simple browser clients for testing pairing.
 
-> The server controls the machine it runs on through `nut-js`, so it needs a real desktop session. It cannot run on a headless cloud server.
+> The backend uses desktop input-control functionality, so it must run in a real desktop session. It is not intended to run as a headless cloud service.
 
-### Mobile app
+### Android application
 
-The app uses native modules (Skia, Gesture Handler), so **Expo Go will not work**. Use a development build:
+The mobile app uses native modules, including Skia and Gesture Handler. **Expo Go is not supported**; use an Expo development build instead.
 
 ```bash
 cd mobile-app
 npm install
-npm install -g eas-cli && eas login
-eas build --profile development --platform android   # install the resulting APK
+npm install -g eas-cli
+eas login
+eas build --profile development --platform android
 npx expo start --dev-client
 ```
 
-Use `eas build --profile preview --platform android` for a shareable APK. To pre-fill the server address, set `EXPO_PUBLIC_SERVER_URL` (for example `http://192.168.1.5:3000`) before building. The last address you used is remembered on the phone.
+To create a shareable APK:
 
-## How pairing works
+```bash
+eas build --profile preview --platform android
+```
 
-1. Desktop registers and receives a random 6‑digit code (valid for 2 minutes).
-2. Phone connects to the desktop's address and sends the code.
-3. Both join a socket.io room named after the code; the desktop shares its screen size.
-4. Only a paired phone can send `draw` and `gesture` events. After 5 wrong codes a connection is dropped.
+You can set `EXPO_PUBLIC_SERVER_URL` before building to pre-fill the desktop server address, for example:
 
-## Security notes
+```text
+EXPO_PUBLIC_SERVER_URL=http://192.168.1.5:3000
+```
 
-- Traffic is plain HTTP/WebSocket on your local network (the Android app allows cleartext for this reason). Use trusted Wi‑Fi only.
-- Anyone who can reach port 3000 and guess a live code can control your mouse while the app is open, so close the app when you are not using it.
+The app remembers the last server address used on the phone.
+
+## Troubleshooting
+
+**The phone cannot pair with the PC**
+
+- Confirm that both devices are connected to the same Wi-Fi network.
+- Check that the IP address entered on the phone matches the address shown by the desktop app.
+- Make sure the pairing code has not expired; use the current code displayed on the PC.
+- Allow the desktop app through Windows Firewall on **Private networks**. The server uses port `3000`.
+
+**The app connects but input does not work**
+
+- Keep the desktop application open while using the phone.
+- Check that the Windows desktop session is active and that the connection has not been interrupted.
+
+## Security
+
+Konvas currently communicates over plain HTTP and WebSocket connections on your local network.
+
+- Use Konvas only on a trusted Wi-Fi network.
+- Anyone who can reach the server and guess the active pairing code may be able to control the PC while the app is running.
+- Close the desktop app when you are finished using it.
 
 ## Tech stack
 
-Electron, Node.js, Express 5, socket.io, `@nut-tree-fork/nut-js`, Expo / React Native, Skia, NativeWind.
+- **Desktop:** Electron, Node.js
+- **Backend:** Express 5, Socket.IO
+- **Desktop input:** `@nut-tree-fork/nut-js`
+- **Mobile:** Expo, React Native, Skia, NativeWind, Gesture Handler
 
-## Authors
+## Contributors
 
-Ashish, Harsh
+- Ashish
+- Harsh 
+
