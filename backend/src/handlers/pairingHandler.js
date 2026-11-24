@@ -7,13 +7,23 @@ import { releaseMouseIfDown } from './drawHandler.js';
 export const roomDimensions = new Map();
 export const roomModes = new Map();
 export const waitingDesktops = new Map();
+
+const OTP_TTL_MS = 2 * 60 * 1000;      // codes expire after 2 minutes
+const MAX_FAILED_ATTEMPTS = 5;         // wrong guesses allowed per socket
 export const pairedRooms = new Map();
 
 export const registerPairingHandlers = (socket) => {
 
     socket.on('registerDesktop', () => {
-        const otp = generatePairingCode();
-        waitingDesktops.set(otp, socket);
+        // Drop any previous code this desktop was waiting with
+        waitingDesktops.forEach((entry, code) => {
+            if (entry.socket === socket) waitingDesktops.delete(code);
+        });
+
+        let otp;
+        do { otp = generatePairingCode(); } while (waitingDesktops.has(otp) || pairedRooms.has(otp));
+
+        waitingDesktops.set(otp, { socket, expiresAt: Date.now() + OTP_TTL_MS });
         socket.emit('otp', { otp });
         socket.roomId = otp;
         socket.deviceType = 'DESKTOP';
@@ -21,12 +31,24 @@ export const registerPairingHandlers = (socket) => {
         console.log("Desktop registered, OTP:", otp);
     });
 
-    socket.on('registerMobile', ({ otp }) => {
-        const desktopSocket = waitingDesktops.get(otp);
-        if (!desktopSocket) {
+    socket.failedAttempts = 0;
+
+    socket.on('registerMobile', ({ otp } = {}) => {
+        if (socket.roomId) return; // already paired / registered
+        if (socket.failedAttempts >= MAX_FAILED_ATTEMPTS) {
+            socket.emit('error', { message: 'Too many attempts. Reconnect and try again.' });
+            socket.disconnect(true);
+            return;
+        }
+
+        const entry = typeof otp === 'string' ? waitingDesktops.get(otp) : undefined;
+        if (!entry || entry.expiresAt < Date.now() || !entry.socket.connected) {
+            if (entry) waitingDesktops.delete(otp);
+            socket.failedAttempts += 1;
             socket.emit('error', { message: 'Invalid or expired code' });
             return;
         }
+        const desktopSocket = entry.socket;
         socket.join(otp);
         desktopSocket.join(otp);
         socket.roomId = otp;
@@ -74,11 +96,10 @@ export const registerPairingHandlers = (socket) => {
 
     socket.on('disconnect', () => {
         console.log("Socket disconnected:", socket.id);
-        releaseMouseIfDown();
-
         const roomId = socket.roomId;
-        waitingDesktops.forEach((desktopSocket, otp) => {
-            if (desktopSocket === socket) waitingDesktops.delete(otp);
+        releaseMouseIfDown(roomId);
+        waitingDesktops.forEach((entry, otp) => {
+            if (entry.socket === socket) waitingDesktops.delete(otp);
         });
 
         if (roomId && pairedRooms.has(roomId)) {

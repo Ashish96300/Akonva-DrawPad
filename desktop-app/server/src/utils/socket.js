@@ -12,20 +12,16 @@ mouse.releaseButton(Button.LEFT).catch(() => {});
 
 const initializeSocket = (server) => {
     const io = new Server(server, {
-        cors: { origin: "*" }
+        cors: { origin: process.env.CORS_ORIGIN || "*" }
     });
 
     io.on('connection', (socket) => {
-        console.log("📱 CONNECTION DETECTED!");
-        socket.onAny((eventName, ...args) => {
-        console.log(`📩 Received Event: ${eventName}`, args);
-    });
         console.log("Socket Connected:", socket.id);
 
         registerPairingHandlers(socket);
 
         socket.on('draw', async (data) => {
-              console.log("Draw received:", socket.roomId, socket.deviceType, data.type, "| mode:", roomModes.get(socket.roomId));
+              
             if (!socket.roomId) return;
             if (socket.deviceType === 'MOBILE') {
                 socket.to(socket.roomId).emit('draw', data);
@@ -35,6 +31,8 @@ const initializeSocket = (server) => {
         });
 
         socket.on('gesture', async (data) => {
+            // Only a paired mobile device may inject input
+            if (!socket.roomId || socket.deviceType !== 'MOBILE') return;
             await handleGesture(data);
         });
     });

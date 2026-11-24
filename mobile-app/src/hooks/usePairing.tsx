@@ -24,7 +24,7 @@ const usePairing = () => {
       Alert.alert('Missing Field', 'Please enter your laptop IP address.');
       return;
     }
-    if (otp.length < 4) {
+    if (otp.length < 6) {
       Alert.alert('Invalid Code', 'Please enter the code shown on your laptop.');
       return;
     }

@@ -14,7 +14,10 @@ app.get('/', (req, res) => {
   });
 });
 
-app.use('/api/devices', deviceRoutes);
+// Debug-only device listing; disabled unless explicitly enabled
+if (process.env.ENABLE_DEBUG_API === 'true') {
+  app.use('/api/devices', deviceRoutes);
+}
 
 // Health check
 app.get('/health', (req, res) => {

@@ -12,7 +12,7 @@ mouse.releaseButton(Button.LEFT).catch(() => {});
 
 const initializeSocket = (server) => {
     const io = new Server(server, {
-        cors: { origin: "*" }
+        cors: { origin: process.env.CORS_ORIGIN || "*" }
     });
 
     io.on('connection', (socket) => {
@@ -31,6 +31,8 @@ const initializeSocket = (server) => {
         });
 
         socket.on('gesture', async (data) => {
+            // Only a paired mobile device may inject input
+            if (!socket.roomId || socket.deviceType !== 'MOBILE') return;
             await handleGesture(data);
         });
     });
