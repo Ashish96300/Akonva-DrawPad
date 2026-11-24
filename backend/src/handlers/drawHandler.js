@@ -2,7 +2,8 @@
 import { mouse, Point, Button } from '@nut-tree-fork/nut-js';
 import { processDelta, resetSmoothing } from '../utils/smoothing.js';
 
-let isMouseDown = false;
+// Track button state per room so one device can't release another's button
+const mouseDownRooms = new Set();
 
 export const handleDraw = async (data, roomId, mode) => {
     try {
@@ -14,20 +15,20 @@ export const handleDraw = async (data, roomId, mode) => {
 
             // ── STYLUS START ──
             if (data.type === 'start') {
-                if (!isMouseDown) {
+                if (!mouseDownRooms.has(roomId)) {
                     resetSmoothing(roomId);
                     await mouse.setPosition(new Point(targetX, targetY));
                     await mouse.pressButton(Button.LEFT);
-                    isMouseDown = true;
+                    mouseDownRooms.add(roomId);
                 }
             } 
             
             // ── STYLUS MOVE (High Speed) ──
             else if (data.type === 'move') {
                 // If we missed a 'start' packet, force the pen down
-                if (!isMouseDown) {
+                if (!mouseDownRooms.has(roomId)) {
                     await mouse.pressButton(Button.LEFT);
-                    isMouseDown = true;
+                    mouseDownRooms.add(roomId);
                 }
 
                 // OPTIMIZATION: Take the last point in the buffer to avoid 'await' lag
@@ -41,8 +42,8 @@ export const handleDraw = async (data, roomId, mode) => {
             
             // ── STYLUS END ──
             else if (data.type === 'end') {
-                if (isMouseDown) {
-                    isMouseDown = false;
+                if (mouseDownRooms.has(roomId)) {
+                    mouseDownRooms.delete(roomId);
                     await mouse.releaseButton(Button.LEFT);
                     resetSmoothing(roomId);
                 }
@@ -73,9 +74,9 @@ export const handleDraw = async (data, roomId, mode) => {
     }
 };
 
-export const releaseMouseIfDown = () => {
-    if (isMouseDown) {
+export const releaseMouseIfDown = (roomId) => {
+    if (mouseDownRooms.has(roomId)) {
+        mouseDownRooms.delete(roomId);
         mouse.releaseButton(Button.LEFT).catch(() => {});
-        isMouseDown = false;
     }
 };

@@ -17,7 +17,6 @@ initializeSocket(server)
 server.listen(PORT, "0.0.0.0",() => {
   console.log(`🚀 Server listening on PORT ${PORT}`);
   console.log(`📡 HTTP: http://localhost:${PORT}`);
-  // console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
 });
 console.log("🔥 NEW SERVER INSTANCE STARTED");
 

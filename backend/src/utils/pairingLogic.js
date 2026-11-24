@@ -1,10 +1,8 @@
-const generatePairingCode = () => {
-    const max = 10000
-    const min = 1000
+import { randomInt } from 'crypto';
 
-    const generateCode = Math.floor(Math.random() * (max - min) + min)
+export const CODE_LENGTH = 6;
 
-    return generateCode.toString();
-}
+// Cryptographically secure 6-digit code (100000–999999)
+const generatePairingCode = () => String(randomInt(10 ** (CODE_LENGTH - 1), 10 ** CODE_LENGTH));
 
-export default generatePairingCode
+export default generatePairingCode;
