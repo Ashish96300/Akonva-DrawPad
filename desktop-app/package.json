@@ -1,6 +1,6 @@
 {
   "name": "drawpad-desktop",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Wireless drawing tablet receiver for mobile devices.",
   "author": "Ashish Sen",
   "license": "ISC",
@@ -23,18 +23,22 @@
   },
   "build": {
     "win": {
+      "icon": "assets/akonva.ico",
       "target": "nsis",
       "signAndEditExecutable": false
     },
     "appId": "com.ashish96300.drawpad",
-    "productName": "DrawPad",
+    "productName": "Akonva",
     "asarUnpack": [
       "node_modules/@nut-tree-fork/**/*"
     ],
     "nsis": {
       "oneClick": true,
       "allowToChangeInstallationDirectory": false,
-      "createDesktopShortcut": true
+      "createDesktopShortcut": true,
+      "installerIcon": "assets/akonva.ico",
+      "uninstallerIcon": "assets/akonva.ico",
+      "installerHeaderIcon": "assets/akonva.ico"
     }
   }
 }

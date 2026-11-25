@@ -15,7 +15,7 @@ const PairingScreen = () => {
         
         {/* Header */}
         <View className="items-center mb-12">
-          <Text className="text-4xl font-bold text-white">DrawPad</Text>
+          <Text className="text-4xl font-bold text-white">Akonva</Text>
           <Text className="text-slate-400 mt-2 text-center text-sm">
             Connect your phone to your laptop
           </Text>
@@ -38,6 +38,12 @@ const PairingScreen = () => {
               onChangeText={setIpAddress}
               editable={!loading}
             />
+            <Text className="text-slate-500 text-xs leading-5 mt-2">
+              Find it on Windows: open Command Prompt or PowerShell, run{' '}
+              <Text className="text-slate-300 font-semibold">ipconfig</Text>, then enter the{' '}
+              <Text className="text-slate-300 font-semibold">IPv4 Address</Text> under your active Wi-Fi adapter.
+              Do not use the Default Gateway.
+            </Text>
           </View>
 
           {/* OTP Input */}

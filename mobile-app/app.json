@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "DrawPad",
+    "name": "Akonva",
     "slug": "mobile-app",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/android-chrome-512x512.png",
     "scheme": "mobileapp",
     "userInterfaceStyle": "automatic",
     "android": {

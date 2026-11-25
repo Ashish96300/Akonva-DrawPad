@@ -1,10 +1,10 @@
 
 
-# Konvas
+# Akonva
 
 **Turn your Android phone into a wireless trackpad and stylus for your Windows PC.**
 
-Konvas lets you control your computer's mouse cursor, scroll through content, and draw on your desktop using your phone. Both devices connect over the same local Wi-Fi network—no USB cable required.
+Akonva lets you control your computer's mouse cursor, scroll through content, and draw on your desktop using your phone. Both devices connect over the same local Wi-Fi network—no USB cable required.
 
 <!-- Screenshots / preview images will be added here later. -->
 
@@ -19,7 +19,7 @@ Konvas lets you control your computer's mouse cursor, scroll through content, an
 
 ## Downloads
 
-Get the latest published builds from the **[Konvas Releases page](https://github.com/Ashish96300/konvas/releases/latest)**.
+Get the latest published builds from the **[Akonva Releases page](https://github.com/Ashish96300/konvas/releases/latest)**.
 
 Download the appropriate file from the release assets for your device:
 
@@ -40,10 +40,12 @@ Your phone and Windows PC must be connected to the same local network.
 
 ### 3. Pair your phone with your PC
 
-1. Open Konvas on your Windows PC. The desktop app displays a six-digit pairing code and the local network address.
+1. Open Akonva on your Windows PC. The desktop app displays a six-digit pairing code and the local network address.
 2. Open the Android app.
 3. Enter the address and six-digit code shown on your PC.
 4. Tap **Pair**.
+
+If you need to find the address yourself, open **Command Prompt** or **PowerShell** on Windows, run `ipconfig`, and use the **IPv4 Address** under the connected Wi-Fi adapter. Do not use the Default Gateway.
 
 Once connected, your phone can control the PC.
 
@@ -125,6 +127,8 @@ npm run dist
 
 The generated installer is placed in the `dist/` directory.
 
+The Windows app and installer icon is `desktop-app/assets/akonva.ico`. Replace that file to change the icon, then rebuild with `npm run dist`.
+
 ### Standalone backend (optional)
 
 ```bash
@@ -189,9 +193,9 @@ The app remembers the last server address used on the phone.
 
 ## Security
 
-Konvas currently communicates over plain HTTP and WebSocket connections on your local network.
+Akonva currently communicates over plain HTTP and WebSocket connections on your local network.
 
-- Use Konvas only on a trusted Wi-Fi network.
+- Use Akonva only on a trusted Wi-Fi network.
 - Anyone who can reach the server and guess the active pairing code may be able to control the PC while the app is running.
 - Close the desktop app when you are finished using it.
 

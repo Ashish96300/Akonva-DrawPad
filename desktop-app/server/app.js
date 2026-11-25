@@ -10,7 +10,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'DrawPad Server is running'
+    message: 'Akonva server is running'
   });
 });
 

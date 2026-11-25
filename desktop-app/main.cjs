@@ -46,7 +46,7 @@ app.whenReady().then(async () => {
         await startEngine();
     } catch (err) {
         dialog.showErrorBox(
-            'DrawPad could not start',
+            'Akonva could not start',
             err.code === 'EADDRINUSE'
                 ? `Port ${PORT} is already in use. Close the other app or set a different PORT.`
                 : String(err.message || err)

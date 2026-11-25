@@ -11,7 +11,7 @@ export const getLanAddresses = () =>
     .filter((n) => n && n.family === 'IPv4' && !n.internal)
     .map((n) => n.address);
 
-/** Start the DrawPad server. Resolves with { port, addresses }. */
+/** Start the Akonva server. Resolves with { port, addresses }. */
 export const startServer = (port = Number(process.env.PORT) || 3000) =>
   new Promise((resolve, reject) => {
     if (server) return resolve({ port, addresses: getLanAddresses() });
@@ -21,7 +21,7 @@ export const startServer = (port = Number(process.env.PORT) || 3000) =>
     s.once('error', reject);
     s.listen(port, '0.0.0.0', () => {
       server = s;
-      console.log(`🚀 DrawPad server listening on port ${port}`);
+      console.log(`🚀 Akonva server listening on port ${port}`);
       getLanAddresses().forEach((ip) => console.log(`📱 Mobile connect to: ${ip}:${port}`));
       resolve({ port, addresses: getLanAddresses() });
     });
