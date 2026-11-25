@@ -1,24 +1,22 @@
 
-import { useRef, useCallback } from 'react';
+import { useCallback } from 'react';
 import { Gesture } from 'react-native-gesture-handler';
 import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import socket from '../services/socket';
 
-const EMIT_THROTTLE_MS = 10; 
+const MOVE_BATCH_INTERVAL_MS = 12;
 
 const useMousepad = (sensitivity: number = 7) => {
-  const lastEmitRef = useRef<number>(0);
   const prevX = useSharedValue(0);
   const prevY = useSharedValue(0);
+  const pendingX = useSharedValue(0);
+  const pendingY = useSharedValue(0);
+  const lastEmitAt = useSharedValue(0);
   const sharedSensitivity = useSharedValue(sensitivity);
   sharedSensitivity.value = sensitivity;
 
   const emitMove = useCallback((deltaX: number, deltaY: number) => {
-    const now = Date.now();
-    if (now - lastEmitRef.current > EMIT_THROTTLE_MS) {
-      socket.emit('draw', { type: 'move', deltaX, deltaY });
-      lastEmitRef.current = now;
-    }
+    if (deltaX || deltaY) socket.emit('draw', { type: 'move', deltaX, deltaY });
   }, []);
 
   const emitGesture = useCallback((payload: object) => {
@@ -33,6 +31,9 @@ const useMousepad = (sensitivity: number = 7) => {
       'worklet';
       prevX.value = 0;
       prevY.value = 0;
+      pendingX.value = 0;
+      pendingY.value = 0;
+      lastEmitAt.value = Date.now();
     })
     // This callback executes later as a UI-thread worklet; runOnJS accesses JS refs only on dispatch.
     // eslint-disable-next-line react-hooks/refs
@@ -42,7 +43,29 @@ const useMousepad = (sensitivity: number = 7) => {
       const dy = (e.translationY - prevY.value) * sharedSensitivity.value;
       prevX.value = e.translationX;
       prevY.value = e.translationY;
-      runOnJS(emitMove)(dx, dy);
+      // Throttle on the UI thread, but accumulate every sample so throttling
+      // never throws away small movements (which made the cursor feel sticky).
+      pendingX.value += dx;
+      pendingY.value += dy;
+      const now = Date.now();
+      if (now - lastEmitAt.value >= MOVE_BATCH_INTERVAL_MS) {
+        const batchX = pendingX.value;
+        const batchY = pendingY.value;
+        pendingX.value = 0;
+        pendingY.value = 0;
+        lastEmitAt.value = now;
+        runOnJS(emitMove)(batchX, batchY);
+      }
+    })
+    .onFinalize(() => {
+      'worklet';
+      if (pendingX.value || pendingY.value) {
+        const batchX = pendingX.value;
+        const batchY = pendingY.value;
+        pendingX.value = 0;
+        pendingY.value = 0;
+        runOnJS(emitMove)(batchX, batchY);
+      }
     });
 
   // ── 2. SCROLLING (Two fingers) ──

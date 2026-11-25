@@ -20,6 +20,7 @@ const createWindow = () => {
         width: 480,
         height: 620,
         resizable: false,
+        icon: path.join(__dirname, 'assets', 'akonva.ico'),
         titleBarStyle: 'hiddenInset',
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),

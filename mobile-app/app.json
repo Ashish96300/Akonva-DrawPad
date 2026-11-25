@@ -2,7 +2,7 @@
   "expo": {
     "name": "Akonva",
     "slug": "mobile-app",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/android-chrome-512x512.png",
     "scheme": "mobileapp",

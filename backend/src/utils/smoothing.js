@@ -31,7 +31,9 @@ export const processDelta = (roomId, rawDx, rawDy) => {
     state.lastTime = now;
 
     // A lower blend factor filters small touch jitter without making the cursor feel heavy.
-    const SMOOTH = 0.2;
+    // React quickly to intentional movement; lower values added a visible lag
+    // after mobile motion had already been batched and throttled.
+    const SMOOTH = 0.55;
     state.velocityX = state.velocityX * (1 - SMOOTH) + rawDx * SMOOTH;
     state.velocityY = state.velocityY * (1 - SMOOTH) + rawDy * SMOOTH;
 
